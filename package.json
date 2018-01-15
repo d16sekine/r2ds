@@ -1,0 +1,24 @@
+{
+  "name": "r2ds",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d16sekine/r2ds.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/d16sekine/r2ds/issues"
+  },
+  "homepage": "https://github.com/d16sekine/r2ds#readme",
+  "dependencies": {
+    "csv-parse": "^2.0.0",
+    "simple-statistics": "^5.2.1"
+  }
+}
