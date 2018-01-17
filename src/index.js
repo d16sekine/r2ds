@@ -2,20 +2,18 @@ const fs = require('fs');
 const csvSync = require('csv-parse/lib/sync'); // requiring sync module
 const sta = require("simple-statistics");
 
-
-const test_mode = false;
+const test_mode = false; //test用jsonファイルで計算する
 
 // ################
 // ### issue
 // ################
 // ★
-// ★
 
 //################
 //### Complete
 //################
-// ★
-// ★
+// ★r2の停止などにより、データがない場合は計算しない（例えば100サンプル以下）
+// ★最低targetProfitPercentの設定　=> myconfig minTargetPercentで設定
 // ★
 // ★
 
@@ -63,6 +61,9 @@ arrayBestProfitPercent = [];
 arrayWorstProfit = [];
 arrayWorstProfitPercent = [];
 
+//暫定的に
+if(res.length < 100) process.exit(0);
+
 for(let i = 1; i < res.length; i++){
 
     let recordTime = transformStrToDate(res[i][0]);
@@ -73,6 +74,7 @@ for(let i = 1; i < res.length; i++){
         continue;
     }
 
+    //負の値の場合は考慮しない
     if(Number(res[i][11]) < 0){
         minusRecord ++;
         continue;
@@ -99,10 +101,17 @@ let stdDevProfitPercent = Math.round(sta.standardDeviation(arrayBestProfitPercen
 let averageProfitPercent_worst = Math.round(sta.mean(arrayWorstProfitPercent) * 100.0) / 100.0;
 let stdDevProfitPercent_worst = Math.round(sta.standardDeviation(arrayWorstProfitPercent) * 1000.0) / 1000.0;
 
+//////// target Profit Percent処理///////////////////////
 console.log("xNumber:", myconfig.xNumber);
 let targetProfit = averageBestProfit + stdDevBestProfit * myconfig.xNumber
 let targetProfitPercent = averageProfitPercent + stdDevProfitPercent * myconfig.xNumber
 targetProfitPercent = Math.round(targetProfitPercent * 100.0) / 100.0;
+
+if(targetProfitPercent < myconfig.minTargetPercent){
+    targetProfitPercent = myconfig.minTargetPercent;
+    console.log("targetProfitPercent < myconfig.minTargetPercent:targetProfitPercent = ", targetProfitPercent);
+}
+
 
 console.log("totalRecord:", totalRecord);
 console.log("minusRecord:", minusRecord);
@@ -122,6 +131,7 @@ console.log("stdev WorstProfitPercent:",stdDevProfitPercent_worst);
 console.log("");
 console.log("TargetProfitPercent:",targetProfitPercent);
 
+//////// JSON 書き込み処理///////////////////////
 json.minTargetProfitPercent = targetProfitPercent;
 console.log("minTargetProfitPercent:",json.minTargetProfitPercent);
 
