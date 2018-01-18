@@ -7,14 +7,16 @@ const test_mode = false; //test用jsonファイルで計算する
 // ################
 // ### issue
 // ################
-// ★
+// ★最低 stdを計算するの大切 ave 0.42 std 0.75 * 3.5 は問題なさそう 0.52 0.072 * 3.5 = 0.739はやや危険。
+// ★reportのファイル削減
+// ★[考察]何が利益を生むのか？ => 瞬間的なスプレッドの開き std
 
 //################
 //### Complete
 //################
 // ★r2の停止などにより、データがない場合は計算しない（例えば100サンプル以下）
 // ★最低targetProfitPercentの設定　=> myconfig minTargetPercentで設定
-// ★
+// ★myconfigにave,std書き出し
 // ★
 
 
@@ -103,8 +105,16 @@ let stdDevProfitPercent_worst = Math.round(sta.standardDeviation(arrayWorstProfi
 
 //////// target Profit Percent処理///////////////////////
 console.log("xNumber:", myconfig.xNumber);
+
+let tempStdDevProfitPercent = stdDevProfitPercent;
+//stdが小さすぎる場合は、0.08以上にする。
+if(tempStdDevProfitPercent < myconfig.stdDevPerMinLimit) {
+    tempStdDevProfitPercent = myconfig.stdDevPerMinLimit;
+    console.log("StdDevProfitPercent < myconfig.stdDevPerMinLimit = ", myconfig.stdDevPerMinLimit);
+}
+
 let targetProfit = averageBestProfit + stdDevBestProfit * myconfig.xNumber
-let targetProfitPercent = averageProfitPercent + stdDevProfitPercent * myconfig.xNumber
+let targetProfitPercent = averageProfitPercent + tempStdDevProfitPercent * myconfig.xNumber
 targetProfitPercent = Math.round(targetProfitPercent * 100.0) / 100.0;
 
 if(targetProfitPercent < myconfig.minTargetPercent){
@@ -112,7 +122,7 @@ if(targetProfitPercent < myconfig.minTargetPercent){
     console.log("targetProfitPercent < myconfig.minTargetPercent:targetProfitPercent = ", targetProfitPercent);
 }
 
-
+console.log("");
 console.log("totalRecord:", totalRecord);
 console.log("minusRecord:", minusRecord);
 console.log("");
@@ -137,10 +147,18 @@ console.log("minTargetProfitPercent:",json.minTargetProfitPercent);
 
 //console.log(json)
 fs.writeFile(file_config, JSON.stringify(json, null, '    '),()=>{
-    console.log("... writeFile is done.")
+    console.log("... writeFile(config.json) is done.")
 });
 
 deleteLog(myconfig.r2path)
+
+myconfig.averageProfitPercent = averageProfitPercent;
+myconfig.stdDevProfitPercent = stdDevProfitPercent;
+
+//console.log(json)
+fs.writeFile("./src/myconfig.json", JSON.stringify(myconfig, null, '    '),()=>{
+    console.log("... writeFile(myconfig.json) is done.")
+});
 
 
 ///////////////////////////////////////////////////////////////////////////
