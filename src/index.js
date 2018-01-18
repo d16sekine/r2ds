@@ -3,7 +3,6 @@ const csvSync = require('csv-parse/lib/sync'); // requiring sync module
 const sta = require("simple-statistics");
 
 const test_mode = false; //test用jsonファイルで計算する
-
 // ################
 // ### issue
 // ################
@@ -27,8 +26,11 @@ let myconfig = JSON.parse(fs.readFileSync("./src/myconfig.json", 'utf8'));
 
 let file_report = myconfig.r2path + "/reports/spreadStat.csv";
 let file_config = myconfig.r2path + "/config.json";
+
+//const exportfilepath = myconfig.r2path + "/reports/spreadStat-tt.csv";
+
 const targeHour = myconfig.targeHour;
-console.log("targetHour:",targeHour);
+//console.log("targetHour:",targeHour);
 
 let totalRecord = 0;
 let minusRecord = 0;
@@ -71,6 +73,7 @@ for(let i = 1; i < res.length; i++){
     let recordTime = transformStrToDate(res[i][0]);
     //console.log("recordTime:",recordTime)
 
+    //基準時間よりも前のデータの場合は飛ばす
     if(recordTime.getTime() < ts_startTarget.getTime()){
         //console.log("continue");
         continue;
@@ -123,6 +126,7 @@ if(targetProfitPercent < myconfig.minTargetPercent){
 }
 
 console.log("");
+console.log("readRecord:", (res.length - 1));
 console.log("totalRecord:", totalRecord);
 console.log("minusRecord:", minusRecord);
 console.log("");
@@ -160,6 +164,9 @@ fs.writeFile("./src/myconfig.json", JSON.stringify(myconfig, null, '    '),()=>{
     console.log("... writeFile(myconfig.json) is done.")
 });
 
+saveArray = selectContent(res);
+
+exportCSV(saveArray, file_report);
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -187,4 +194,55 @@ function deleteLog(path){
         console.log("... info.log is delete.");
     });
 
+}
+
+// 配列をcsvで保存するfunction
+function exportCSV(content, filepath){
+
+    let formatCSV ="";
+
+    for (let i = 0; i < content.length; i++) {
+        var value = content[i];
+  
+        for (let j = 0; j < value.length; j++) { var innerValue = value[j]===null?'':value[j].toString(); var result = innerValue.replace(/"/g, '""'); if (result.search(/("|,|\n)/g) >= 0)
+        result = '"' + result + '"';
+        if (j > 0)
+        formatCSV += ',';
+        formatCSV += result;
+      }
+      formatCSV += '\r\n';
+    }
+    fs.writeFile(filepath , formatCSV, 'utf8', function (err) {
+      if (err) {
+        console.log('保存できませんでした');
+      } else {
+        console.log('... rewrite spreadStat.csv is done.');
+      }
+    });
+  }
+
+  // 配列をcsvで保存するfunction
+function selectContent(targetArray){
+
+    let resultArray = [];
+
+    let ts_startTarget = new Date();
+    ts_startTarget.setHours(ts_startTarget.getHours() - 24); //24時間前から記録
+
+    resultArray.push(targetArray[0])    //見出し行
+
+    for (let i = 1; i < targetArray.length; i++) {
+
+        let contentTime = transformStrToDate(targetArray[i][0]);
+
+        if(contentTime.getTime() < ts_startTarget.getTime()){
+            continue;
+        }        
+        
+        resultArray.push(targetArray[i]);
+
+    }
+
+    return resultArray;
+    
 }
