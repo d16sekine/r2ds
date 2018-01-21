@@ -6,8 +6,6 @@ const test_mode = false; //test用jsonファイルで計算する
 // ################
 // ### issue
 // ################
-// ★最低 stdを計算するの大切 ave 0.42 std 0.75 * 3.5 は問題なさそう 0.52 0.072 * 3.5 = 0.739はやや危険。
-// ★reportのファイル削減
 // ★[考察]何が利益を生むのか？ => 瞬間的なスプレッドの開き std
 
 //################
@@ -16,8 +14,8 @@ const test_mode = false; //test用jsonファイルで計算する
 // ★r2の停止などにより、データがない場合は計算しない（例えば100サンプル以下）
 // ★最低targetProfitPercentの設定　=> myconfig minTargetPercentで設定
 // ★myconfigにave,std書き出し
-// ★
-
+// ★report/spreadStat.csvのファイル循環機能
+// ★stdの下限リミット設定
 
 //********************//
 //*** Init
@@ -105,7 +103,8 @@ let averageProfitPercent = Math.round(sta.mean(arrayBestProfitPercent) * 100.0) 
 let stdDevProfitPercent = Math.round(sta.standardDeviation(arrayBestProfitPercent) * 1000.0) / 1000.0;
 let averageProfitPercent_worst = Math.round(sta.mean(arrayWorstProfitPercent) * 100.0) / 100.0;
 let stdDevProfitPercent_worst = Math.round(sta.standardDeviation(arrayWorstProfitPercent) * 1000.0) / 1000.0;
-
+let stdDevProfitPercent_max = Math.round(sta.max(arrayBestProfitPercent) * 1000.0) / 1000.0;
+let stdDevProfitPercent_min = Math.round(sta.min(arrayBestProfitPercent) * 1000.0) / 1000.0;
 //////// target Profit Percent処理///////////////////////
 console.log("xNumber:", myconfig.xNumber);
 
@@ -118,13 +117,19 @@ if(tempStdDevProfitPercent < myconfig.stdDevPerMinLimit) {
 
 let targetProfit = averageBestProfit + stdDevBestProfit * myconfig.xNumber
 let targetProfitPercent = averageProfitPercent + tempStdDevProfitPercent * myconfig.xNumber
-targetProfitPercent = Math.round(targetProfitPercent * 100.0) / 100.0;
 
+
+//minTargetPercentよりtargetProfitPercentが小さい場合は、その値にする。
 if(targetProfitPercent < myconfig.minTargetPercent){
     targetProfitPercent = myconfig.minTargetPercent;
     console.log("targetProfitPercent < myconfig.minTargetPercent:targetProfitPercent = ", targetProfitPercent);
 }
 
+if(stdDevProfitPercent_max < myconfig.minTargetPercent){
+    targetProfitPercent = stdDevProfitPercent_max + myconfig.stdDevPerMinLimit;
+}
+
+targetProfitPercent = Math.round(targetProfitPercent * 100.0) / 100.0;
 console.log("");
 console.log("readRecord:", (res.length - 1));
 console.log("totalRecord:", totalRecord);
@@ -137,8 +142,8 @@ console.log("average WorstProfit:",averageWorstProfit);
 console.log("");
 console.log("average BestProfitPercent:",averageProfitPercent);
 console.log("stdDev BestProfitPercent:",stdDevProfitPercent);
-console.log("Max BestProfitPercent:",sta.max(arrayBestProfitPercent));
-console.log("Min BestProfitPercent:",sta.min(arrayBestProfitPercent));
+console.log("Max BestProfitPercent:",stdDevProfitPercent_max);
+console.log("Min BestProfitPercent:",stdDevProfitPercent_min);
 console.log("");
 console.log("average WorstProfitPercent:",averageProfitPercent_worst);
 console.log("stdev WorstProfitPercent:",stdDevProfitPercent_worst);
@@ -158,6 +163,8 @@ deleteLog(myconfig.r2path)
 
 myconfig.averageProfitPercent = averageProfitPercent;
 myconfig.stdDevProfitPercent = stdDevProfitPercent;
+myconfig.minProfitPercent = stdDevProfitPercent_min;
+myconfig.maxProfitPercent = stdDevProfitPercent_max;
 
 //console.log(json)
 fs.writeFile("./src/myconfig.json", JSON.stringify(myconfig, null, '    '),()=>{
@@ -168,6 +175,7 @@ saveArray = selectContent(res);
 
 exportCSV(saveArray, file_report);
 
+///////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
 
 function transformStrToDate(timestamp){
