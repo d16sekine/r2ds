@@ -63,6 +63,7 @@ arrayBestProfitPercent = [];
 arrayWorstProfit = [];
 arrayWorstProfitPercent = [];
 
+
 //暫定的に
 if(res.length < 100) process.exit(0);
 
@@ -103,8 +104,10 @@ let averageProfitPercent = Math.round(sta.mean(arrayBestProfitPercent) * 100.0) 
 let stdDevProfitPercent = Math.round(sta.standardDeviation(arrayBestProfitPercent) * 1000.0) / 1000.0;
 let averageProfitPercent_worst = Math.round(sta.mean(arrayWorstProfitPercent) * 100.0) / 100.0;
 let stdDevProfitPercent_worst = Math.round(sta.standardDeviation(arrayWorstProfitPercent) * 1000.0) / 1000.0;
-let stdDevProfitPercent_max = Math.round(sta.max(arrayBestProfitPercent) * 1000.0) / 1000.0;
-let stdDevProfitPercent_min = Math.round(sta.min(arrayBestProfitPercent) * 1000.0) / 1000.0;
+let ProfitPercent_max = Math.round(sta.max(arrayBestProfitPercent) * 1000.0) / 1000.0;
+let ProfitPercent_min = Math.round(sta.min(arrayBestProfitPercent) * 1000.0) / 1000.0;
+let tempMaxSize = 0.04; 
+
 //////// target Profit Percent処理///////////////////////
 console.log("xNumber:", myconfig.xNumber);
 
@@ -116,6 +119,8 @@ if(tempStdDevProfitPercent < myconfig.stdDevPerMinLimit) {
 }
 
 let targetProfit = averageBestProfit + stdDevBestProfit * myconfig.xNumber
+
+//基本式
 let targetProfitPercent = averageProfitPercent + tempStdDevProfitPercent * myconfig.xNumber
 
 
@@ -125,9 +130,31 @@ if(targetProfitPercent < myconfig.minTargetPercent){
     console.log("targetProfitPercent < myconfig.minTargetPercent:targetProfitPercent = ", targetProfitPercent);
 }
 
-if(stdDevProfitPercent_max < myconfig.minTargetPercent){
-    targetProfitPercent = stdDevProfitPercent_max + myconfig.stdDevPerMinLimit;
+//期間中のProfitPercentの最大値よりも、minTargetPercentが大きい場合
+if(ProfitPercent_max < myconfig.minTargetPercent){
+
+    targetProfitPercent = ProfitPercent_max + myconfig.stdDevPerMinLimit;
+
+    //targetProfitPercentと平均値の差が、最低目標値よりも低い場合は、stdDevPerMinLimitだけ追加。
+    if((targetProfitPercent - averageProfitPercent) < (myconfig.stdDevPerMinLimit * myconfig.xNumber)){
+        targetProfitPercent += myconfig.stdDevPerMinLimit // /2.0だとマイナスになることが２回あった 2018/01/24
+    }
 }
+
+//テスト中の式
+if(averageProfitPercent > 1.3){
+
+    targetProfitPercent = averageProfitPercent + 0.5;
+}
+
+//maxSizeの変動
+if(targetProfitPercent > 1.5){
+    tempMaxSize /= 2.0;
+}
+if(targetProfitPercent > 3.0){
+    tempMaxSize = 0.01;
+}
+
 
 targetProfitPercent = Math.round(targetProfitPercent * 100.0) / 100.0;
 console.log("");
@@ -142,8 +169,8 @@ console.log("average WorstProfit:",averageWorstProfit);
 console.log("");
 console.log("average BestProfitPercent:",averageProfitPercent);
 console.log("stdDev BestProfitPercent:",stdDevProfitPercent);
-console.log("Max BestProfitPercent:",stdDevProfitPercent_max);
-console.log("Min BestProfitPercent:",stdDevProfitPercent_min);
+console.log("Max BestProfitPercent:",ProfitPercent_max);
+console.log("Min BestProfitPercent:",ProfitPercent_min);
 console.log("");
 console.log("average WorstProfitPercent:",averageProfitPercent_worst);
 console.log("stdev WorstProfitPercent:",stdDevProfitPercent_worst);
@@ -152,6 +179,7 @@ console.log("TargetProfitPercent:",targetProfitPercent);
 
 //////// JSON 書き込み処理///////////////////////
 json.minTargetProfitPercent = targetProfitPercent;
+json.maxSize = tempMaxSize;
 console.log("minTargetProfitPercent:",json.minTargetProfitPercent);
 
 //console.log(json)
@@ -163,8 +191,8 @@ deleteLog(myconfig.r2path)
 
 myconfig.averageProfitPercent = averageProfitPercent;
 myconfig.stdDevProfitPercent = stdDevProfitPercent;
-myconfig.minProfitPercent = stdDevProfitPercent_min;
-myconfig.maxProfitPercent = stdDevProfitPercent_max;
+myconfig.minProfitPercent = ProfitPercent_min;
+myconfig.maxProfitPercent = ProfitPercent_max;
 
 //console.log(json)
 fs.writeFile("./src/myconfig.json", JSON.stringify(myconfig, null, '    '),()=>{
